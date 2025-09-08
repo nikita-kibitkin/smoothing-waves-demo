@@ -1,0 +1,51 @@
+server:
+  port: 8080
+
+priority-enabled: true
+
+poisson:
+  duration-minutes: ${DURATION_MINUTES:20}
+  high-priority-chance: 0.2                 # 0=one queue only
+  lambda: ${LAMBDA:40}                       #messages per second
+  low-wm: 10
+  high-wm: 20
+  bulk-budget: 3
+
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 2
+  kafka:
+    bootstrap-servers: kafka:9092 #localhost:29092
+    high-topic: high-topic
+    bulk-topic: bulk-topic
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.priority.model
+        spring.json.value.default.type: com.example.priority.model.Message
+        spring.json.use.type.headers: false
+
+management:
+  endpoints.web.exposure.include: health,metrics,prometheus
+  metrics.distribution.percentiles-histogram.http.server.requests: true
+  endpoint.prometheus.enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+  defaults:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      experiment: ${EXPERIMENT_ID:runDummy}
+
+#logging:
+#  level:
+#    org.springframework.kafka.listener: DEBUG
+#    org.apache.kafka.clients.consumer: DEBUG
