@@ -1,6 +1,7 @@
 package com.example.priority.metrics;
 
-import com.example.priority.service.DoubleQueueService;
+import com.example.priority.service.ProducerService;
+import com.example.priority.smoothing.BackpressureGate;
 import io.micrometer.core.instrument.Gauge;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -9,37 +10,34 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class GaugeRegistry {
-    private final DoubleQueueService doubleQueueService;
     private final io.micrometer.core.instrument.MeterRegistry registry;
+    private final BackpressureGate backpressureGate;
+    private final ProducerService producerService;
 
     @PostConstruct
     void init() {
         //throughput
-        Gauge.builder("high.throughput", ThroughputMetrics::getCurrentThroughputHigh)
+        Gauge.builder("throughput", ThroughputMetrics::getCurrentThroughput)
                 .register(registry);
-        Gauge.builder("bulk.throughput", ThroughputMetrics::getCurrentThroughputBulk)
+        Gauge.builder("ingressRate", ThroughputMetrics::getCurrentIngressRate)
+                .register(registry);
+        //count total
+        Gauge.builder("count.emitted", () -> producerService.getStochasticGenerator().getEmittedTasks())
+                .register(registry);
+        Gauge.builder("count.handled", ThroughputMetrics::getThroughputTotalCount)
                 .register(registry);
         //latency
-        Gauge.builder("high.latency.avg", () -> LatencyMetrics.getHighHistogramCopy().getMean())
+        Gauge.builder("latency.avg", () -> LatencyMetrics.getHistogramCopy().getMean())
                 .register(registry);
-        Gauge.builder("high.latency.p99", () -> LatencyMetrics.getHighHistogramCopy().getValueAtPercentile(99))
+        Gauge.builder("latency.p99", () -> LatencyMetrics.getHistogramCopy().getValueAtPercentile(99))
                 .register(registry);
-        Gauge.builder("high.latency.p95", () -> LatencyMetrics.getHighHistogramCopy().getValueAtPercentile(95))
+        Gauge.builder("latency.p95", () -> LatencyMetrics.getHistogramCopy().getValueAtPercentile(95))
                 .register(registry);
-        Gauge.builder("high.latency.p50", () -> LatencyMetrics.getHighHistogramCopy().getValueAtPercentile(50))
+        //backpressureGate queue depth
+        Gauge.builder("backpressureGate.queue.depth", () -> backpressureGate.getQueue().size())
                 .register(registry);
-        Gauge.builder("bulk.latency.avg", () -> LatencyMetrics.getBulkHistogramCopy().getMean())
-                .register(registry);
-        Gauge.builder("bulk.latency.p99", () -> LatencyMetrics.getBulkHistogramCopy().getValueAtPercentile(99))
-                .register(registry);
-        Gauge.builder("bulk.latency.p95", () -> LatencyMetrics.getBulkHistogramCopy().getValueAtPercentile(95))
-                .register(registry);
-        Gauge.builder("bulk.latency.p50", () -> LatencyMetrics.getBulkHistogramCopy().getValueAtPercentile(50))
-                .register(registry);
-        //queue depth
-        Gauge.builder("high.queue.depth", doubleQueueService::getHighDepth)
-                .register(registry);
-        Gauge.builder("bulk.queue.depth", doubleQueueService::getBulkDepth)
+        //backpressureGate credits
+        Gauge.builder("backpressureGate.credits", backpressureGate::getCredits)
                 .register(registry);
     }
 }

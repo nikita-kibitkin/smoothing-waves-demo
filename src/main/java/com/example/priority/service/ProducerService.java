@@ -1,8 +1,12 @@
 package com.example.priority.service;
 
+import com.example.priority.generator.SquareWaveRate;
+import com.example.priority.generator.StochasticLoadGenerator;
+import com.example.priority.generator.batchsize.GeometricBatchSize;
 import com.example.priority.model.Message;
-import com.example.priority.util.PoissonLoadGenerator;
+import com.example.priority.smoothing.BackpressureGate;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -21,51 +25,51 @@ import java.util.Random;
 @Service
 @RequiredArgsConstructor
 public class ProducerService {
-    @Value(value = "${priority-enabled}")
-    private Boolean priorityEnabled;
-    @Value(value = "${spring.kafka.high-topic}")
-    private String highTopic;
-    @Value(value = "${spring.kafka.bulk-topic}")
-    private String bulkTopic;
-    @Value(value = "${poisson.duration-minutes}")
+    @Value(value = "${spring.kafka.topic}")
+    private String kafkaTopic;
+    @Value(value = "${load-generator.duration-minutes}")
     private int DURATION_MINUTES;
-    @Value(value = "${poisson.high-priority-chance}")
-    private Double HIGH_CHANCE;
-    @Value(value = "${poisson.lambda}")
-    private Double LAMBDA;  //messages per second
+    @Value(value = "${backpressure-active}")
+    private Boolean backpressureActive;
     private final KafkaTemplate<String, Message> kafkaTemplate;
     private final Random random = new Random();
     private final TaskScheduler scheduler;
-    private PoissonLoadGenerator poissonGenerator;
+    private final BackpressureGate backpressureGate;
     private final ConfigurableApplicationContext ctx;
+    @Getter
+    private StochasticLoadGenerator stochasticGenerator;
 
 
     @SneakyThrows
     @EventListener(ApplicationReadyEvent.class)
-    public void poissonPublish() {
-        Thread.sleep(10_000); // wait for app started
+    public void stochasticPublish() {
+        //Thread.sleep(5_000); // wait for app started
         Runnable task = () -> {
-            var message = new Message(System.currentTimeMillis(), isHighPriority(), "payload-" + random.nextDouble());
-            if (priorityEnabled) {
-                kafkaTemplate.send(message.highPriority() ? highTopic : bulkTopic, message);
-            } else {
-                kafkaTemplate.send(highTopic, message);
-            }
+            var message = new Message(System.currentTimeMillis(), "payload-" + random.nextDouble());
+            kafkaTemplate.send(kafkaTopic, message);
             log.info("Sent in Kafka: {}", message);
         };
 
-        var poissonGenerator = new PoissonLoadGenerator(scheduler, task, LAMBDA, ctx);
-        this.poissonGenerator = poissonGenerator;
-        poissonGenerator.start(Duration.ofMinutes(DURATION_MINUTES));
-        log.info("PoissonGenerator started");
+        StochasticLoadGenerator slg = StochasticLoadGenerator.builder()
+                .scheduler(scheduler)                        // твой TaskScheduler
+                .task(task)                                  // твоя нагрузка
+                .rate(SquareWaveRate
+                        .of(2.0, 25.0, Duration.ofMinutes(1), 0.25)  // low=2 rps, high=50 rps, период=1м, duty=25%
+                        .withJitter(0.10))                           // ±10% рваность краёв
+                .batchSampler(GeometricBatchSize.ofMean(5)) // средняя пачка ~5
+                .intraBatchSpread(Duration.ofMillis(200))   // разнести k задач по ~200мс
+                .ctx(ctx)
+                .backpressureGate(backpressureActive ? backpressureGate : null)// оставить, как в твоём stop()
+                .build();
+        this.stochasticGenerator = slg;
+
+        slg.start(Duration.ofMinutes(DURATION_MINUTES));
+        log.info("StochasticGenerator started");
     }
 
     @PreDestroy
     void shutdown() {
-        if (poissonGenerator != null) poissonGenerator.stop();
+        if (stochasticGenerator != null) stochasticGenerator.stop();
     }
 
-    private boolean isHighPriority() {
-        return random.nextDouble() < HIGH_CHANCE;
-    }
 }

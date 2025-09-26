@@ -6,22 +6,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LatencyMetrics {
-    private final static Histogram highLatencyHist = new ConcurrentHistogram(500_000L, 3);
-    private final static Histogram bulkLatencyHist = new ConcurrentHistogram(500_000L, 3);
+    private final static Histogram latencyHist = new ConcurrentHistogram(5_000_000L, 3);
 
-    public static Histogram getHighHistogram() {
-        return highLatencyHist;
+    public static Histogram getHistogram() {
+        return latencyHist;
     }
 
-    public static Histogram getBulkHistogram() {
-        return bulkLatencyHist;
+    public static Histogram getHistogramCopy() {
+        return latencyHist.copy();
     }
 
-    public static Histogram getHighHistogramCopy() {
-        return highLatencyHist.copy();
-    }
-
-    public static Histogram getBulkHistogramCopy() {
-        return bulkLatencyHist.copy();
-    }
 }

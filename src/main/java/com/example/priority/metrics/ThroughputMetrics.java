@@ -10,31 +10,37 @@ import java.util.concurrent.atomic.LongAdder;
 @Slf4j
 @Component
 public class ThroughputMetrics {
-    private final static LongAdder countHigh = new LongAdder();
-    private final static LongAdder countBulk = new LongAdder();
-    private final int fixedRate = 5; //Throughput window in seconds,
+    private final int fixedRate = 1; //Throughput window in seconds,
     @Getter
-    private static volatile double currentThroughputHigh;
+    private final static LongAdder throughputTotalCount = new LongAdder();
     @Getter
-    private static volatile double currentThroughputBulk;
+    private final static LongAdder throughputWindowCount = new LongAdder();
+    @Getter
+    private static volatile double currentThroughput;
+    private static final LongAdder ingressWindowCount = new LongAdder();
+    @Getter
+    private static volatile double currentIngressRate;
 
-    public static void incrementHigh() {
-        countHigh.increment();
+    public static void incrementThroughputCount() {
+        throughputTotalCount.increment();
+        throughputWindowCount.increment();
     }
 
-    public static void incrementBulk() {
-        countBulk.increment();
+    public static void incrementIngressRateCount() {
+        ingressWindowCount.increment();
     }
+
 
     @Scheduled(fixedRate = fixedRate * 1000)
     public void recordAndReset() {
-        double throughputHigh = (double) countHigh.sum() / fixedRate;
-        double throughputBulk = (double) countBulk.sum() / fixedRate;
+        double throughput = (double) throughputWindowCount.sum() / fixedRate;
+        currentThroughput = throughput;
+        throughputWindowCount.reset();
+        log.info("Throughput recorded for last {} ms. Throughput={}.", fixedRate, throughput);
 
-        currentThroughputHigh = throughputHigh;
-        currentThroughputBulk = throughputBulk;
-        countHigh.reset();
-        countBulk.reset();
-        log.info("Throughput recorded for last {} ms. ThroughputHigh={}. ThroughputBulk={}", fixedRate, throughputHigh, throughputBulk);
+        double ingressRate = (double) ingressWindowCount.sum() / fixedRate;
+        currentIngressRate = ingressRate;
+        ingressWindowCount.reset();
+        log.info("IngressRate recorded for last {} ms. IngressRate={}.", fixedRate, ingressRate);
     }
 }

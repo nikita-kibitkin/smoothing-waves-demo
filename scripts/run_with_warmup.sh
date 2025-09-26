@@ -2,10 +2,11 @@
 set -euo pipefail
 
 run_phase() {
-  local label="$1" minutes="$2" lambda="$3"
+  local label="$1" minutes="$2" lambda="$3" backpressure="$4"
   export DURATION_MINUTES="$minutes"
   export LAMBDA="$lambda"
   export EXPERIMENT_ID="$label"
+  export BACKPRESSURE_ACTIVE="$backpressure"
 
   echo "[$label] starting for ${minutes} min..."
   docker compose up -d --build app
@@ -20,6 +21,6 @@ run_phase() {
 docker compose up -d zookeeper kafka prometheus grafana
 
 #warmup
-run_phase warmup 5 40
+run_phase warmup 5 40 false
 #main
-run_phase main 20 40
+run_phase main 5 40 true
