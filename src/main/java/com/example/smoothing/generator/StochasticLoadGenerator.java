@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public final class StochasticLoadGenerator {
     private final TaskScheduler scheduler;
-    private final Runnable task;
+    private final TimedTask task;
     private final RateFunction rate;
     private final double lambdaMax;               // λ upper bound for thinning
     private final BatchSizeSampler batchSampler;  // k ~ D
@@ -42,7 +42,7 @@ public final class StochasticLoadGenerator {
     @Builder
     private StochasticLoadGenerator(
             @NonNull TaskScheduler scheduler,
-            @NonNull Runnable task,
+            @NonNull TimedTask task,
             @NonNull RateFunction rate,
             @NonNull ConfigurableApplicationContext ctx,
             BatchSizeSampler batchSampler,
@@ -152,9 +152,9 @@ public final class StochasticLoadGenerator {
     private void safeRun() {
         try {
             if (gate == null) {
-                task.run();
+                task.run(System.currentTimeMillis());
             } else {
-                gate.enqueue(task);
+                gate.enqueue(() -> task.run(System.currentTimeMillis()));
             }
         } catch (Throwable t) {
             log.error("task.run() failed", t);

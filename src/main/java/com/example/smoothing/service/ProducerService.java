@@ -2,6 +2,7 @@ package com.example.smoothing.service;
 
 import com.example.smoothing.generator.SquareWaveRate;
 import com.example.smoothing.generator.StochasticLoadGenerator;
+import com.example.smoothing.generator.TimedTask;
 import com.example.smoothing.generator.batchsize.GeometricBatchSize;
 import com.example.smoothing.model.Message;
 import com.example.smoothing.smoothing.BackpressureGate;
@@ -41,15 +42,15 @@ public class ProducerService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void stochasticPublish() {
-        Runnable task = () -> {
-            var message = new Message(System.currentTimeMillis(), "payload-" + random.nextDouble());
+        TimedTask kafkaSendTask = (t0) -> {
+            var message = new Message(t0, "payload-" + random.nextDouble());
             kafkaTemplate.send(kafkaTopic, message);
             log.info("Sent in Kafka: {}", message);
         };
 
         StochasticLoadGenerator slg = StochasticLoadGenerator.builder()
                 .scheduler(scheduler)                        // твой TaskScheduler
-                .task(task)                                  // твоя нагрузка
+                .task(kafkaSendTask)                                  // твоя нагрузка
                 .rate(SquareWaveRate
                         .of(2.0, 25.0, Duration.ofMinutes(1), 0.25)  // low=2 rps, high=50 rps, период=1м, duty=25%
                         .withJitter(0.10))                           // ±10% рваность краёв
