@@ -1,14 +1,13 @@
-package com.example.priority.service;
+package com.example.smoothing.service;
 
-import com.example.priority.generator.SquareWaveRate;
-import com.example.priority.generator.StochasticLoadGenerator;
-import com.example.priority.generator.batchsize.GeometricBatchSize;
-import com.example.priority.model.Message;
-import com.example.priority.smoothing.BackpressureGate;
+import com.example.smoothing.generator.SquareWaveRate;
+import com.example.smoothing.generator.StochasticLoadGenerator;
+import com.example.smoothing.generator.batchsize.GeometricBatchSize;
+import com.example.smoothing.model.Message;
+import com.example.smoothing.smoothing.BackpressureGate;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -40,10 +39,8 @@ public class ProducerService {
     private StochasticLoadGenerator stochasticGenerator;
 
 
-    @SneakyThrows
     @EventListener(ApplicationReadyEvent.class)
     public void stochasticPublish() {
-        //Thread.sleep(5_000); // wait for app started
         Runnable task = () -> {
             var message = new Message(System.currentTimeMillis(), "payload-" + random.nextDouble());
             kafkaTemplate.send(kafkaTopic, message);

@@ -1,9 +1,9 @@
-package com.example.priority.generator;
+package com.example.smoothing.generator;
 
-import com.example.priority.generator.batchsize.BatchSizeSampler;
-import com.example.priority.generator.batchsize.GeometricBatchSize;
-import com.example.priority.metrics.ThroughputMetrics;
-import com.example.priority.smoothing.BackpressureGate;
+import com.example.smoothing.generator.batchsize.BatchSizeSampler;
+import com.example.smoothing.generator.batchsize.GeometricBatchSize;
+import com.example.smoothing.metrics.ThroughputMetrics;
+import com.example.smoothing.smoothing.BackpressureGate;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public final class StochasticLoadGenerator {
     private final BatchSizeSampler batchSampler;  // k ~ D
     private final Duration intraBatchSpread;      // 0 => fire inline immediately
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final ConfigurableApplicationContext ctx; // optional, for graceful exit
+    private final ConfigurableApplicationContext ctx;
     private final Clock clock;
     private final BackpressureGate gate;
 
@@ -44,15 +44,16 @@ public final class StochasticLoadGenerator {
             @NonNull TaskScheduler scheduler,
             @NonNull Runnable task,
             @NonNull RateFunction rate,
+            @NonNull ConfigurableApplicationContext ctx,
             BatchSizeSampler batchSampler,
             Duration intraBatchSpread,
-            ConfigurableApplicationContext ctx,
             Clock clock,
             BackpressureGate backpressureGate, ThroughputMetrics throughputMetrics
     ) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.task = Objects.requireNonNull(task, "task");
         this.rate = Objects.requireNonNull(rate, "rate");
+        this.ctx = Objects.requireNonNull(ctx, "ctx");
         this.lambdaMax = rate.upperBoundRatePerSecond();
         if (lambdaMax <= 0.0 || !Double.isFinite(lambdaMax)) {
             throw new IllegalArgumentException("rate.upperBoundRatePerSecond() must be finite and > 0");
@@ -62,7 +63,6 @@ public final class StochasticLoadGenerator {
         if (sample <= 0) throw new IllegalArgumentException("batchSampler must return k >= 1");
         this.intraBatchSpread = (intraBatchSpread != null) ? intraBatchSpread : Duration.ZERO;
         if (this.intraBatchSpread.isNegative()) throw new IllegalArgumentException("intraBatchSpread must be >= 0");
-        this.ctx = ctx; // may be null
         this.clock = (clock != null) ? clock : Clock.systemUTC();
         this.gate = backpressureGate;
         log.info("StochasticLoadGenerator initialized: λmax={}, spread={}ms, batchDist={}, rate={}, gate={}",
@@ -90,21 +90,19 @@ public final class StochasticLoadGenerator {
         if (!running.compareAndSet(true, false)) return;
         if (stopFuture != null) stopFuture.cancel(false);
         log.info("StochasticLoadGenerator stopping. Emitted tasks={}, batches={}.", emittedTasks.get(), acceptedBatches.get());
-        if (ctx != null) {
-            new Thread(() -> {
-                try {
-                    Thread.sleep(30_000);
-                } catch (InterruptedException ignored) {
-                }
-                try {
-                    int code = SpringApplication.exit(ctx, () -> 0);
-                    System.exit(code);
-                } catch (Throwable t) {
-                    log.error("Shutdown failed, forcing System.exit(1)", t);
-                    System.exit(1);
-                }
-            }, "app-exit-thread").start();
-        }
+        new Thread(() -> {
+            try {
+                Thread.sleep(30_000);
+            } catch (InterruptedException ignored) {
+            }
+            try {
+                int code = SpringApplication.exit(ctx, () -> 0);
+                System.exit(code);
+            } catch (Throwable t) {
+                log.error("Shutdown failed, forcing System.exit(1)", t);
+                System.exit(1);
+            }
+        }, "app-exit-thread").start();
     }
 
     // === Core NHPP (Lewis–Shedler thinning) ===
@@ -134,7 +132,6 @@ public final class StochasticLoadGenerator {
 
     private void emitBatch(int k, Instant t0) {
         if (intraBatchSpread.isZero() || k == 1) {
-            // Inline execution keeps semantics identical to original for k==1 and spread==0
             for (int i = 0; i < k; i++) safeRun();
             emittedTasks.addAndGet(k);
             return;
@@ -174,12 +171,6 @@ public final class StochasticLoadGenerator {
 
     private Instant now() {
         return clock.instant();
-    }
-
-    // === Public accessors for telemetry/tests ===
-
-    public long getAcceptedBatches() {
-        return acceptedBatches.get();
     }
 
     public long getEmittedTasks() {

@@ -1,4 +1,4 @@
-package com.example.priority.metrics;
+package com.example.smoothing.metrics;
 
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;

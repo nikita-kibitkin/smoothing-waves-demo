@@ -1,4 +1,4 @@
-package com.example.priority.generator.batchsize;
+package com.example.smoothing.generator.batchsize;
 
 import lombok.extern.slf4j.Slf4j;
 

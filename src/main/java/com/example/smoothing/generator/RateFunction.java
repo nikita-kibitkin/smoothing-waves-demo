@@ -1,4 +1,4 @@
-package com.example.priority.generator;
+package com.example.smoothing.generator;
 
 import java.time.Instant;
 

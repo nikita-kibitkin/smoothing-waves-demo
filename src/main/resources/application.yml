@@ -4,8 +4,7 @@ server:
 
 load-generator:
   duration-minutes: ${DURATION_MINUTES:20}
-  lambda: ${LAMBDA:40}
-  #messages per second
+
 backpressure-active: ${BACKPRESSURE_ACTIVE:false}
 
 spring:
@@ -41,7 +40,3 @@ management:
     tags:
       experiment: ${EXPERIMENT_ID:runDummy}
 
-#logging:
-#  level:
-#    org.springframework.kafka.listener: DEBUG
-#    org.apache.kafka.clients.consumer: DEBUG

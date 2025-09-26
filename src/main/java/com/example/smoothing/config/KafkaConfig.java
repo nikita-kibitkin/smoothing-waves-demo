@@ -1,6 +1,6 @@
-package com.example.priority.config;
+package com.example.smoothing.config;
 
-import com.example.priority.model.Message;
+import com.example.smoothing.model.Message;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.admin.NewTopic;

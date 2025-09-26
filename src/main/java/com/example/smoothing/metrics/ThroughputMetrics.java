@@ -1,4 +1,4 @@
-package com.example.priority.metrics;
+package com.example.smoothing.metrics;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

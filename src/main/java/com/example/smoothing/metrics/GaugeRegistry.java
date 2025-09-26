@@ -1,7 +1,7 @@
-package com.example.priority.metrics;
+package com.example.smoothing.metrics;
 
-import com.example.priority.service.ProducerService;
-import com.example.priority.smoothing.BackpressureGate;
+import com.example.smoothing.service.ProducerService;
+import com.example.smoothing.smoothing.BackpressureGate;
 import io.micrometer.core.instrument.Gauge;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;

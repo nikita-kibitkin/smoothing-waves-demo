@@ -1,4 +1,4 @@
-package com.example.priority.generator;
+package com.example.smoothing.generator;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,10 +35,6 @@ public final class SquareWaveRate implements RateFunction {
 
     public static SquareWaveRate of(double low, double high, Duration period, double dutyCycle) {
         return new SquareWaveRate(low, high, period, dutyCycle, Instant.EPOCH, 0.0);
-    }
-
-    public SquareWaveRate withPhase(Instant phase) {
-        return new SquareWaveRate(low, high, period, dutyCycle, phase, jitterFrac);
     }
 
     /**

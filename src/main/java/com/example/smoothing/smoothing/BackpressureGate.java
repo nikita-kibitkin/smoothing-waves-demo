@@ -1,4 +1,4 @@
-package com.example.priority.smoothing;
+package com.example.smoothing.smoothing;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

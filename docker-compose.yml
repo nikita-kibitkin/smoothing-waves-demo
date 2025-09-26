@@ -30,7 +30,6 @@ services:
       # fix heap to the memory limit with a small reserve
       - JAVA_TOOL_OPTIONS=-Xms1g -Xmx1g -XX:+AlwaysPreTouch
       - DURATION_MINUTES
-      - LAMBDA
       - EXPERIMENT_ID
       - BACKPRESSURE_ACTIVE
     deploy:

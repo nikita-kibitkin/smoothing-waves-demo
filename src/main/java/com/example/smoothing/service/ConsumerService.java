@@ -1,9 +1,9 @@
-package com.example.priority.service;
+package com.example.smoothing.service;
 
-import com.example.priority.metrics.LatencyMetrics;
-import com.example.priority.metrics.ThroughputMetrics;
-import com.example.priority.model.Message;
-import com.example.priority.smoothing.BackpressureGate;
+import com.example.smoothing.metrics.LatencyMetrics;
+import com.example.smoothing.metrics.ThroughputMetrics;
+import com.example.smoothing.model.Message;
+import com.example.smoothing.smoothing.BackpressureGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +30,6 @@ public class ConsumerService {
     }
 
     private void emulateWorkAndRecordMetrics(Message msg) throws InterruptedException {
-        log.info("emulateWorkAndRecordMetrics started");
         Thread.sleep(30);
         var latency = System.currentTimeMillis() - msg.startTimeMs();
         LatencyMetrics.getHistogram().recordValue(latency);

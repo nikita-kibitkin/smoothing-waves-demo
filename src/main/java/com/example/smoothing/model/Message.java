@@ -1,4 +1,4 @@
-package com.example.priority.model;
+package com.example.smoothing.model;
 
 import java.io.Serializable;
 
