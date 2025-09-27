@@ -151,10 +151,11 @@ public final class StochasticLoadGenerator {
 
     private void safeRun() {
         try {
+            final long t0 = System.currentTimeMillis(); // Created time
             if (gate == null) {
-                task.run(System.currentTimeMillis());
+                task.run(t0);
             } else {
-                gate.enqueue(() -> task.run(System.currentTimeMillis()));
+                gate.enqueue(() -> task.run(t0));
             }
         } catch (Throwable t) {
             log.error("task.run() failed", t);
