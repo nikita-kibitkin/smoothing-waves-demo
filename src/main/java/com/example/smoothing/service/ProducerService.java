@@ -9,6 +9,7 @@ import com.example.smoothing.smoothing.BackpressureGate;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -29,8 +30,8 @@ public class ProducerService {
     private String kafkaTopic;
     @Value(value = "${load-generator.duration-minutes}")
     private int DURATION_MINUTES;
-    @Value(value = "${backpressure-active}")
-    private Boolean backpressureActive;
+    @Value(value = "${backpressure.enabled}")
+    private Boolean backpressureEnabled;
     private final KafkaTemplate<String, Message> kafkaTemplate;
     private final Random random = new Random();
     private final TaskScheduler scheduler;
@@ -40,10 +41,13 @@ public class ProducerService {
     private StochasticLoadGenerator stochasticGenerator;
 
 
+    @SneakyThrows
     @EventListener(ApplicationReadyEvent.class)
     public void stochasticPublish() {
+        Thread.sleep(10_000); // wait Kafka
+
         TimedTask kafkaSendTask = (t0) -> {
-            var message = new Message(t0, "payload-" + random.nextDouble());
+            var message = new Message(t0, "payload-" + random.nextDouble() + random.nextDouble() + random.nextDouble());
             kafkaTemplate.send(kafkaTopic, message);
             log.info("Sent in Kafka: {}", message);
         };
@@ -52,12 +56,12 @@ public class ProducerService {
                 .scheduler(scheduler)                        // твой TaskScheduler
                 .task(kafkaSendTask)                                  // твоя нагрузка
                 .rate(SquareWaveRate
-                        .of(2.0, 25.0, Duration.ofMinutes(1), 0.25)  // low=2 rps, high=50 rps, период=1м, duty=25%
-                        .withJitter(0.10))                           // ±10% рваность краёв
+                        .of(2.0, 50.0, Duration.ofMinutes(1), 0.25)  // low=2 rps, high=50 rps, период=1м, duty=25%
+                        .withJitter(0.1))                           // ±10% рваность краёв
                 .batchSampler(GeometricBatchSize.ofMean(5)) // средняя пачка ~5
                 .intraBatchSpread(Duration.ofMillis(200))   // разнести k задач по ~200мс
                 .ctx(ctx)
-                .backpressureGate(backpressureActive ? backpressureGate : null)// оставить, как в твоём stop()
+                .backpressureGate(backpressureEnabled ? backpressureGate : null)// оставить, как в твоём stop()
                 .build();
         this.stochasticGenerator = slg;
 

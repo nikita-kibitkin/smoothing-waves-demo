@@ -3,6 +3,7 @@ package com.example.smoothing.smoothing;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutorService;
@@ -10,13 +11,16 @@ import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public final class BackpressureGate {
-    private final ExecutorService executor = Executors.newFixedThreadPool(20);
+    private final ExecutorService executor = Executors.newFixedThreadPool(300);
     @Getter
-    private final java.util.concurrent.atomic.AtomicLong credits = new java.util.concurrent.atomic.AtomicLong(100);
+    private final java.util.concurrent.BlockingQueue<Runnable> queue = new java.util.concurrent.LinkedBlockingQueue<>(20_000);
     @Getter
-    private final java.util.concurrent.BlockingQueue<Runnable> queue = new java.util.concurrent.LinkedBlockingQueue<>(100_000);
+    private final java.util.concurrent.atomic.AtomicLong credits;
+
+    public BackpressureGate(@Value(value = "${backpressure.credits}") long credits) {
+        this.credits = new java.util.concurrent.atomic.AtomicLong(credits);
+    }
 
     public void enqueue(Runnable r) {
         boolean ok = queue.offer(r);

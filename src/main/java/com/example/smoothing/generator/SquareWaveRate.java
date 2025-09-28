@@ -50,7 +50,7 @@ public final class SquareWaveRate implements RateFunction {
         long sincePhase = Math.max(0L, t.minusMillis(0).toEpochMilli() - phase.toEpochMilli());
         long mod = Math.floorMod(sincePhase, period.toMillis());
         double frac = (perNanos == 0) ? 0.0 : (mod / (double) period.toMillis());
-        log.info("Frac = {}", frac);
+        //log.info("Frac = {}", frac);
         boolean isHigh = frac < dutyCycle;
         double base = isHigh ? high : low;
         if (jitterFrac == 0.0) return base;
@@ -58,7 +58,7 @@ public final class SquareWaveRate implements RateFunction {
         double b = 1.0 + jitterFrac;
         double mult = a + (b - a) * ThreadLocalRandom.current().nextDouble();
         var rate = Math.max(0.0, base * mult);
-        log.info("Rate per second: {}", rate);
+        //log.info("Rate per second: {}", rate);
         return rate;
     }
 

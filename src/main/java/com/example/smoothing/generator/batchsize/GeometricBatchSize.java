@@ -25,7 +25,7 @@ public final class GeometricBatchSize implements BatchSizeSampler {
         // ln(1 - u) / ln(1 - p) > 0; добавляем 1 для сдвинутой геометрической
         int k = 1 + (int) Math.floor(Math.log1p(-u) / Math.log1p(-p));
         var sample = Math.max(1, k);
-        log.info("sample: {}", sample);
+        //log.info("sample: {}", sample);
         return sample;
     }
 }

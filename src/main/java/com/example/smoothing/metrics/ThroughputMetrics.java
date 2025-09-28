@@ -36,11 +36,11 @@ public class ThroughputMetrics {
         double throughput = (double) throughputWindowCount.sum() / fixedRate;
         currentThroughput = throughput;
         throughputWindowCount.reset();
-        log.info("Throughput recorded for last {} ms. Throughput={}.", fixedRate, throughput);
+        log.info("Throughput recorded for last {} s. Throughput={}.", fixedRate, throughput);
 
         double ingressRate = (double) ingressWindowCount.sum() / fixedRate;
         currentIngressRate = ingressRate;
         ingressWindowCount.reset();
-        log.info("IngressRate recorded for last {} ms. IngressRate={}.", fixedRate, ingressRate);
+        log.info("IngressRate recorded for last {} s. IngressRate={}.", fixedRate, ingressRate);
     }
 }

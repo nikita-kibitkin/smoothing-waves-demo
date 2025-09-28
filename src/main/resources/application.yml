@@ -5,13 +5,30 @@ server:
 load-generator:
   duration-minutes: ${DURATION_MINUTES:20}
 
-backpressure-active: ${BACKPRESSURE_ACTIVE:false}
+backpressure:
+  enabled: ${BACKPRESSURE_ENABLED:false}
+  credits: ${BACKPRESSURE_CREDITS:500}
+db-enabled: ${DB_ENABLED:false}
 
 spring:
   task:
     scheduling:
       pool:
         size: 2
+  datasource:
+    url: jdbc:postgresql://pg:5432/postgres
+    username: postgres
+    password: postgres
+    hikari:
+      maximumPoolSize: 8
+      minimumIdle: 8
+      poolName: pg-pool
+      connectionTimeout: 250 #ms
+
+  sql:
+    init:
+      mode: always   # apply schema.sql on start
+      separator: ^;
   kafka:
     bootstrap-servers: kafka:9092 #localhost:29092
     topic: topic
