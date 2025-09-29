@@ -20,8 +20,8 @@ spring:
     username: postgres
     password: postgres
     hikari:
-      maximumPoolSize: 8
-      minimumIdle: 8
+      maximumPoolSize: 1
+      minimumIdle: 1
       poolName: pg-pool
       connectionTimeout: 250 #ms
 
@@ -32,6 +32,10 @@ spring:
   kafka:
     bootstrap-servers: kafka:9092 #localhost:29092
     topic: topic
+    producer:
+      properties:
+        linger.ms: 0
+        batch.size: 1
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer

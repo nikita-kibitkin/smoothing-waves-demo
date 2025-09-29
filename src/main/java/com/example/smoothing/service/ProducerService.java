@@ -49,7 +49,7 @@ public class ProducerService {
         TimedTask kafkaSendTask = (t0) -> {
             var message = new Message(t0, "payload-" + random.nextDouble() + random.nextDouble() + random.nextDouble());
             kafkaTemplate.send(kafkaTopic, message);
-            log.info("Sent in Kafka: {}", message);
+            //log.info("Sent in Kafka: {}", message);
         };
 
         StochasticLoadGenerator slg = StochasticLoadGenerator.builder()

@@ -22,7 +22,7 @@ public class ConsumerService {
     @Value(value = "${db-enabled}")
     private Boolean dbEnabled;
 
-    @KafkaListener(topics = {"${spring.kafka.topic}"}, concurrency = "8")
+    @KafkaListener(topics = {"${spring.kafka.topic}"}, concurrency = "1")
     public void handle(Message msg) {
         try {
             if (dbEnabled) {
@@ -38,13 +38,14 @@ public class ConsumerService {
     }
 
     private void saveToDBAndRecordMetrics(Message msg) {
-        double dbMs = eventDao.insert(msg.startTimeMs(), msg.payload()); //Insert takes about 30 ms. Because of delay_30ms in schema.sql
-        log.info("Insert into DB length= {} ms", dbMs);
+        eventDao.insert(msg.startTimeMs(), msg.payload()); //Insert takes about 30 ms. Because of delay_30ms in schema.sql
+        eventDao.insert(msg.startTimeMs(), msg.payload());
+        //log.info("Insert into DB length= {} ms", dbMs);
         // end-to-end latency
         long e2eMs = System.currentTimeMillis() - msg.startTimeMs();
         LatencyMetrics.getHistogram().recordValue(e2eMs);
         ThroughputMetrics.incrementThroughputCount();
-        log.info("Latency recorded, REAL DB case: endToEnd latency={} ms, dbWrite={} ms", e2eMs, dbMs);
+        //log.info("Latency recorded, REAL DB case: endToEnd latency={} ms, dbWrite={} ms", e2eMs, dbMs);
     }
 
     private void emulateWorkAndRecordMetrics(Message msg) throws InterruptedException {

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutorService;
@@ -33,6 +34,13 @@ public final class BackpressureGate {
         }
         drain();
     }
+//
+//    @Scheduled(fixedDelay = 5_000_000)
+//    public void pushQueue(){
+//        while (credits.get() > 0) {
+//            drain();
+//        }
+//    }
 
     public void grant(long n) { // called by downstream (handler)
         if (n > 0) {

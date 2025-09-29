@@ -32,7 +32,7 @@ CREATE trigger events_audit_trg
 
 CREATE OR REPLACE FUNCTION delay_20ms() RETURNS TRIGGER AS $$
 BEGIN
-  PERFORM pg_sleep(0.03);
+ -- PERFORM pg_sleep(0.005);
 RETURN NEW;
 END;
 $$ LANGUAGE plpgsql

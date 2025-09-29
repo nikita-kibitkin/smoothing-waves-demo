@@ -22,92 +22,54 @@ services:
       KAFKA_CREATE_TOPICS: "high-topic:1:1,bulk-topic:1:1"
 
   pg:
-    image: postgres:16
+    image: bitnami/postgresql:16
     ports: [ "5433:5432" ]
     environment:
-      - POSTGRES_USERNAME=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DATABASE=postgres
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=postgres
 
-      - POSTGRES_REPLICATION_MODE=master
-      - POSTGRES_REPLICATION_USER=postgres
-      - POSTGRES_REPLICATION_PASSWORD=postgres
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=postgres
+      - POSTGRESQL_REPLICATION_PASSWORD=postgres
 
-      - POSTGRES_NUM_SYNCHRONOUS_REPLICAS=1
-      - POSTGRES_SYNCHRONOUS_COMMIT=remote_apply
+      - POSTGRESQL_NUM_SYNCHRONOUS_REPLICAS=1
+      - POSTGRESQL_SYNCHRONOUS_COMMIT=remote_apply
 
-      - POSTGRES_WAL_LEVEL=replica
-      - POSTGRES_MAX_WAL_SENDERS=10
-      - POSTGRES_MAX_REPLICATION_SLOTS=10
-      - POSTGRES_SHARED_BUFFERS=256MB
-      - POSTGRES_LOG_CONNECTIONS=true
-      - POSTGRES_LOG_DISCONNECTIONS=true
-    command:
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
-      - "-c"
-      - "wal_level=replica"
-      - "-c"
-      - "max_wal_senders=10"
-      - "-c"
-      - "max_replication_slots=10"
-      - "-c"
-      - "synchronous_commit=remote_apply"
-      - "-c"
-      - "synchronous_standby_names=standby1"
-      - "-c"
-      - "hba_file=/etc/postgresql/pg_hba.conf"
+      - POSTGRESQL_WAL_LEVEL=replica
+      - POSTGRESQL_MAX_WAL_SENDERS=10
+      - POSTGRESQL_MAX_REPLICATION_SLOTS=10
+      - POSTGRESQL_SHARED_BUFFERS=256MB
+      - POSTGRESQL_LOG_CONNECTIONS=true
+      - POSTGRESQL_LOG_DISCONNECTIONS=true
+      - POSTGRESQL_EXTRA_FLAGS=-c listen_addresses=* -c wal_level=replica -c max_wal_senders=10 -c max_replication_slots=10 -c synchronous_commit=remote_apply -c synchronous_standby_names=standby1 -c hba_file=/opt/bitnami/postgresql/conf/pg_hba.conf
     volumes:
-      - pg_data:/bitnami/postgresql`
-      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - pg_data:/bitnami/postgresql
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
 
-  toxiproxy:
-    image: ghcr.io/shopify/toxiproxy:2.9.0
-    container_name: toxiproxy
-    ports:
-      - "8666:8666"   # admin API
-      - "15432:15432" # listener для репликации
-    command: [ "-host=0.0.0.0","-port=8666" ]
-    healthcheck:
-      test: [ "CMD","/toxiproxy-cli","-h","127.0.0.1","-p","8666","list" ]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+
 
   pg_standby:
     image: bitnami/postgresql:16
-    container_name: pg_standby
-    depends_on: [pg]
-    # NET_ADMIN нужен для tc netem
-    cap_add: ["NET_ADMIN"]
+    depends_on: [ pg ]
+    cap_add: [ "NET_ADMIN" ]      # право на qdisc
     environment:
+      # Bitnami-реплика (оставьте те же значения, что у вас)
       - POSTGRES_REPLICATION_MODE=slave
       - POSTGRES_REPLICATION_USER=postgres
       - POSTGRES_REPLICATION_PASSWORD=postgres
       - POSTGRES_MASTER_HOST=pg
       - POSTGRES_MASTER_PORT_NUMBER=5432
-
-      # Этими учётками standby тоже создаёт такую же БД/пользователя
       - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DATABASE=postgres
-
-      # Имя приложения реплики — попадёт в pg_stat_replication.application_name
       - POSTGRES_CLUSTER_APP_NAME=standby1
-
       - POSTGRES_SYNCHRONOUS_COMMIT=off
-    # Вставим искусственную сетевую задержку 15 мс (≈30 мс RTT)
-    command: >
-      bash -lc '
-        export PATH=/opt/bitnami/postgresql/bin:$PATH
-        until pg_isready -h pg -p 5432 -U postgres; do sleep 1; done;
-        tc qdisc add dev eth0 root netem delay 15ms || true;
-        exec /opt/bitnami/scripts/postgresql/run.sh
-      '
     volumes:
-      - pg_standby_data:/var/lib/postgresql/data
-      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - pg_standby_data:/bitnami/postgresql
+      - ./pg_hba.conf:/opt/bitnami/postgresql/conf/pg_hba.conf'
+
+
 
   app:
     build: .
