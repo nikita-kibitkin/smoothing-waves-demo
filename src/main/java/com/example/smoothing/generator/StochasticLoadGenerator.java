@@ -92,7 +92,7 @@ public final class StochasticLoadGenerator {
         log.info("StochasticLoadGenerator stopping. Emitted tasks={}, batches={}.", emittedTasks.get(), acceptedBatches.get());
         new Thread(() -> {
             try {
-                Thread.sleep(20_000);
+                Thread.sleep(40_000);
             } catch (InterruptedException ignored) {
             }
             try {

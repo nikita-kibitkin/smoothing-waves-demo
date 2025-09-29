@@ -21,10 +21,15 @@ run_phase() {
 
 docker compose up -d  zookeeper kafka prometheus grafana pg pg_standby
 
-run_phase pg_bp_1000 2 true 500 true
-run_phase pg_bp_no 2 false 0 true
-run_phase pg_bp_2000 2 true 1000 true
-run_phase pg_bp_2000 2 true 300 true
+run_phase pg_bp_no 10 false 0 true
+run_phase pg_bp_no 10 false 0 true
+run_phase pg_bp_500 10 true 500 true
+run_phase pg_bp_500 10 true 500 true
+run_phase pg_bp_750 10 true 750 true
+run_phase pg_bp_750 10 true 750 true
+run_phase pg_bp_1000 10 true 1000 true
+run_phase pg_bp_1000 10 true 1000 true
+
 
 
 
