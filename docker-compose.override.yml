@@ -1,27 +1,73 @@
+networks:
+  bench:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1500"   # фиксируем MTU, чтобы не ловить редкий джиттер
+
 services:
   app:
+    networks: [bench]
+    cpuset: "2-3"
     mem_limit: 2g
-    cpus: 2
     environment:
-      - JAVA_TOOL_OPTIONS=-Xms1g -Xmx1g -XX:+AlwaysPreTouch
+      - JAVA_TOOL_OPTIONS=-Xms1g -Xmx1g -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+AlwaysPreTouch
+    ulimits:
+      nofile: 1048576
 
   kafka:
+    networks: [bench]
+    cpuset: "0-1"
     mem_limit: 2g
-    cpus: 2
-
-  pg:
-    mem_limit: 1g
-    cpus: 1
+    ulimits:
+      nofile: 1048576
 
   zookeeper:
+    networks: [bench]
+    cpuset: "5"
     mem_limit: 512m
-    cpus: 0.5
+    logging:
+      driver: "none"
+
+  pg:
+    networks: [bench]
+    cpuset: "4"
+    mem_limit: 1g
+    ulimits:
+      nofile: 1048576
+
+  pg_standby:
+    networks: [bench]
+    cpuset: "5"
+    mem_limit: 1g
+    ulimits:
+      nofile: 1048576
 
   prometheus:
+    networks: [bench]
+    cpuset: "5"
     mem_limit: 1g
-    cpus: 0.5
+    logging:
+      driver: "none"
 
   grafana:
+    networks: [bench]
+    cpuset: "5"
     mem_limit: 512m
-    cpus: 0.5
+    logging:
+      driver: "none"
+
+#  loki:
+#    networks: [bench]
+#    cpuset: "5"
+#    mem_limit: 1g
+#    logging:
+#      driver: "none"
+#
+#  promtail:
+#    networks: [bench]
+#    cpuset: "5"
+#    mem_limit: 256m
+#    logging:
+#      driver: "none"
+
 

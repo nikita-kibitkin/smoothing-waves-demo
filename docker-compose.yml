@@ -19,7 +19,6 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_CREATE_TOPICS: "high-topic:1:1,bulk-topic:1:1"
 
   pg:
     image: bitnami/postgresql:16
@@ -42,12 +41,10 @@ services:
       - POSTGRESQL_SHARED_BUFFERS=256MB
       - POSTGRESQL_LOG_CONNECTIONS=true
       - POSTGRESQL_LOG_DISCONNECTIONS=true
-      - POSTGRESQL_EXTRA_FLAGS=-c listen_addresses=* -c wal_level=replica -c max_wal_senders=10 -c max_replication_slots=10 -c synchronous_commit=remote_apply -c synchronous_standby_names=standby1 -c hba_file=/opt/bitnami/postgresql/conf/pg_hba.conf
+      - POSTGRESQL_EXTRA_FLAGS=-c listen_addresses=* -c effective_cache_size=2GB -c log_autovacuum_min_duration=0 -c checkpoint_timeout=30min -c checkpoint_completion_target=0.9 -c wal_level=replica -c max_wal_size=8GB -c max_wal_senders=10 -c max_replication_slots=10 -c synchronous_commit=remote_apply -c synchronous_standby_names=standby1 -c hba_file=/opt/bitnami/postgresql/conf/pg_hba.conf
     volumes:
       - pg_data:/bitnami/postgresql
       - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
-
-
 
   pg_standby:
     image: bitnami/postgresql:16
@@ -69,8 +66,6 @@ services:
       - pg_standby_data:/bitnami/postgresql
       - ./pg_hba.conf:/opt/bitnami/postgresql/conf/pg_hba.conf'
 
-
-
   app:
     build: .
     ports: ["8080:8080"]
@@ -85,6 +80,7 @@ services:
       - BACKPRESSURE_ENABLED
       - BACKPRESSURE_CREDITS
       - DB_ENABLED
+      - HIGH_RATE
     deploy:
       resources:
         limits:
@@ -104,6 +100,27 @@ services:
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+#  loki:
+#    image: grafana/loki:3.0.0
+#    user: "0:0"
+#    command: -config.file=/etc/loki/config.yml
+#    ports:
+#      - "3100:3100"
+#    volumes:
+#      - ./loki-config.yml:/etc/loki/config.yml
+#      - ./loki-data:/loki
+#
+#  promtail:
+#    image: grafana/promtail:3.0.0
+#    depends_on:
+#      - loki
+#    command: -config.file=/etc/promtail/config.yml
+#    volumes:
+#      # Если логи приложений идут в stdout Docker-контейнеров:
+#      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+#      - /var/log:/var/log:ro
+#      - ./promtail-config.yml:/etc/promtail/config.yml
 
 volumes:
    pg_data:

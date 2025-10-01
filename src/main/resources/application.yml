@@ -4,6 +4,7 @@ server:
 
 load-generator:
   duration-minutes: ${DURATION_MINUTES:20}
+  high-rate: ${HIGH_RATE:50}
 
 backpressure:
   enabled: ${BACKPRESSURE_ENABLED:false}

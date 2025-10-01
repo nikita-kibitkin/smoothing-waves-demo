@@ -38,6 +38,7 @@ public class ConsumerService {
     }
 
     private void saveToDBAndRecordMetrics(Message msg) {
+        //double dbMs = eventDao.insert(msg.startTimeMs(), msg.payload()); //Insert takes about 30 ms. Because of delay_30ms in schema.sql
         eventDao.insert(msg.startTimeMs(), msg.payload()); //Insert takes about 30 ms. Because of delay_30ms in schema.sql
         eventDao.insert(msg.startTimeMs(), msg.payload());
         //log.info("Insert into DB length= {} ms", dbMs);

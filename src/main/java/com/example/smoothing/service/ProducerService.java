@@ -30,6 +30,8 @@ public class ProducerService {
     private String kafkaTopic;
     @Value(value = "${load-generator.duration-minutes}")
     private int DURATION_MINUTES;
+    @Value(value = "${load-generator.high-rate}")
+    private int HIGH_RATE;
     @Value(value = "${backpressure.enabled}")
     private Boolean backpressureEnabled;
     private final KafkaTemplate<String, Message> kafkaTemplate;
@@ -56,7 +58,7 @@ public class ProducerService {
                 .scheduler(scheduler)                        // твой TaskScheduler
                 .task(kafkaSendTask)                                  // твоя нагрузка
                 .rate(SquareWaveRate
-                        .of(2.0, 50.0, Duration.ofMinutes(1), 0.25)  // low=2 rps, high=50 rps, период=1м, duty=25%
+                        .of(2.0, HIGH_RATE, Duration.ofMinutes(1), 0.25)  // low=2 rps, high=50 rps, период=1м, duty=25%
                         .withJitter(0.1))                           // ±10% рваность краёв
                 .batchSampler(GeometricBatchSize.ofMean(5)) // средняя пачка ~5
                 .intraBatchSpread(Duration.ofMillis(200))   // разнести k задач по ~200мс

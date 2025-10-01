@@ -1,26 +1,52 @@
 package com.example.smoothing.smoothing;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import jakarta.annotation.PreDestroy;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Service
 public final class BackpressureGate {
-    private final ExecutorService executor = Executors.newFixedThreadPool(300);
+    // === ИСПОЛНИТЕЛЬ ===
+    // Пул без внутренней очереди: прямой hand-off. Нет «второго буфера».
+    private final ThreadPoolExecutor executor;
     @Getter
-    private final java.util.concurrent.BlockingQueue<Runnable> queue = new java.util.concurrent.LinkedBlockingQueue<>(20_000);
+    private final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(20_000);
     @Getter
-    private final java.util.concurrent.atomic.AtomicLong credits;
+    private final AtomicLong credits;
+    // Защита от параллельных drain(): один активный дренёр
+    private final AtomicInteger wip = new AtomicInteger(0);
 
-    public BackpressureGate(@Value(value = "${backpressure.credits}") long credits) {
-        this.credits = new java.util.concurrent.atomic.AtomicLong(credits);
+    public BackpressureGate(
+            @Value("${backpressure.credits}") long credits
+    ) {
+        this.credits = new AtomicLong(credits);
+        // === НАСТРОЙКИ ===
+        // Сколько одновременно воркеров реально выполняют задачи.
+        // Подстрой под пул соединений БД. Для твоей машины начни с 64..128.
+        int maxWorkers = 300;
+
+        this.executor = new ThreadPoolExecutor(
+                maxWorkers,
+                maxWorkers,
+                0L, TimeUnit.MILLISECONDS,
+                // НИКАКИХ очередей внутри пула — иначе снова будет двойное буферизование
+                new SynchronousQueue<>(),
+                runnable -> {
+                    Thread t = new Thread(runnable, "bp-worker");
+                    t.setDaemon(true);
+                    return t;
+                },
+                // Когда все воркеры заняты — пусть вызывающий поток сам выполнит задачу
+                // Это даёт честный мгновенный backpressure и не накачивает очереди.
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
     }
 
     public void enqueue(Runnable r) {
@@ -28,21 +54,16 @@ public final class BackpressureGate {
         if (!ok) {
             try {
                 queue.put(r);
-            } catch (InterruptedException ignored) {
-                log.error("queue interrupted");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("queue interrupted", e);
+                return;
             }
         }
         drain();
     }
-//
-//    @Scheduled(fixedDelay = 5_000_000)
-//    public void pushQueue(){
-//        while (credits.get() > 0) {
-//            drain();
-//        }
-//    }
 
-    public void grant(long n) { // called by downstream (handler)
+    public void grant(long n) {
         if (n > 0) {
             credits.addAndGet(n);
             drain();
@@ -62,12 +83,15 @@ public final class BackpressureGate {
     }
 
     private boolean tryAcquireCredit() {
-        long credits;
-        do {
-            credits = this.credits.get();
-            if (credits <= 0) return false;
-        } while (!this.credits.compareAndSet(credits, credits - 1)); // atomic credit acquire
-        return true;
+        while (true) {
+            long c = credits.get();
+            if (c <= 0) return false;
+            if (credits.compareAndSet(c, c - 1)) return true;
+        }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executor.shutdown();
     }
 }
-
