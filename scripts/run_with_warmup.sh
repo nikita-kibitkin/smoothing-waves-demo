@@ -51,9 +51,9 @@ docker compose up -d  zookeeper kafka prometheus grafana pg pg_standby #loki pro
 #run_phase pg_bp_1000 5 true 1000 true 40
 #run_phase pg_bp_1500 2 true 1500 true 40
 
-run_phase pg_bp_1000 3 true 1000 true 50
-run_phase pg_bp_no 3 false 0 true 50
-#run_phase pg_bp_500 3 true 500 true 50
+run_phase pg_bp_1000 10 true 1000 true 50
+run_phase pg_bp_no 10 false 0 true 50
+run_phase pg_bp_500 10 true 500 true 50
 run_phase pg_bp_1500 3 true 1500 true 50
 run_phase pg_bp_1000 3 true 1000 true 50
 

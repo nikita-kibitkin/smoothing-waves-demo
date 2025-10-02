@@ -60,7 +60,7 @@ public class ConsumerService {
 
     private void grantBackpressureCredit() {
         if (backpressureEnabled) {
-            backpressureGate.grant(1);
+            //backpressureGate.grant(1);
         }
     }
 
