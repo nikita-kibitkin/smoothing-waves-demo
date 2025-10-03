@@ -1,8 +1,8 @@
 package com.example.smoothing.service;
 
 import com.example.smoothing.db.EventDao;
-import com.example.smoothing.metrics.LatencyMetrics;
-import com.example.smoothing.metrics.ThroughputMetrics;
+import com.example.smoothing.metrics.HistogramMetrics;
+import com.example.smoothing.metrics.WindowedMetrics;
 import com.example.smoothing.model.Message;
 import com.example.smoothing.smoothing.BackpressureGate;
 import lombok.RequiredArgsConstructor;
@@ -44,8 +44,8 @@ public class ConsumerService {
         //log.info("Insert into DB length= {} ms", dbMs);
         // end-to-end latency
         long e2eMs = System.currentTimeMillis() - msg.startTimeMs();
-        LatencyMetrics.getHistogram().recordValue(e2eMs);
-        ThroughputMetrics.incrementThroughputCount();
+        HistogramMetrics.getHistogram().recordValue(e2eMs);
+        WindowedMetrics.recordMetrics(e2eMs);
         //log.info("Latency recorded, REAL DB case: endToEnd latency={} ms, dbWrite={} ms", e2eMs, dbMs);
     }
 
@@ -53,8 +53,8 @@ public class ConsumerService {
         Thread.sleep(30);
         // end-to-end latency
         var e2eMs = System.currentTimeMillis() - msg.startTimeMs();
-        LatencyMetrics.getHistogram().recordValue(e2eMs);
-        ThroughputMetrics.incrementThroughputCount();
+        HistogramMetrics.getHistogram().recordValue(e2eMs);
+        WindowedMetrics.recordMetrics(e2eMs);
         log.info("Latency recorded, MOCK DB case: endToEnd latency={} ms", e2eMs);
     }
 

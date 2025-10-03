@@ -5,7 +5,7 @@ import org.HdrHistogram.Histogram;
 import org.springframework.stereotype.Component;
 
 @Component
-public class LatencyMetrics {
+public class HistogramMetrics {
     private final static Histogram latencyHist = new ConcurrentHistogram(5_000_000L, 3);
 
     public static Histogram getHistogram() {

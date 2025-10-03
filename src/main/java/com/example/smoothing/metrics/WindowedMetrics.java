@@ -5,15 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.atomic.DoubleAdder;
 import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j
 @Component
-public class ThroughputMetrics {
+public class WindowedMetrics {
     private final int fixedRate = 1; //Throughput window in seconds,
     @Getter
     private final static LongAdder throughputTotalCount = new LongAdder();
-    @Getter
     private final static LongAdder throughputWindowCount = new LongAdder();
     @Getter
     private static volatile double currentThroughput;
@@ -21,9 +21,17 @@ public class ThroughputMetrics {
     @Getter
     private static volatile double currentIngressRate;
 
-    public static void incrementThroughputCount() {
+    private static final DoubleAdder latencyWindowSum = new DoubleAdder();
+    @Getter
+    private static volatile double currentLatencyWindowAvg;
+
+
+
+
+    public static void recordMetrics(Long e2eLatency) {
         throughputTotalCount.increment();
         throughputWindowCount.increment();
+        latencyWindowSum.add(e2eLatency);
     }
 
     public static void incrementIngressRateCount() {
@@ -42,5 +50,10 @@ public class ThroughputMetrics {
         currentIngressRate = ingressRate;
         ingressWindowCount.reset();
         log.info("IngressRate recorded for last {} s. IngressRate={}.", fixedRate, ingressRate);
+
+        double latencyWindowAvg = latencyWindowSum.sum() / fixedRate;
+        currentLatencyWindowAvg = latencyWindowAvg;
+        latencyWindowSum.reset();
+        log.info("LatencyWindowAvg recorded for last {} s.LatencyWindowAvg={}.", fixedRate, latencyWindowAvg);
     }
 }
