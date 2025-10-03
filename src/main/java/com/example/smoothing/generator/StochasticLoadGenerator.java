@@ -2,7 +2,7 @@ package com.example.smoothing.generator;
 
 import com.example.smoothing.generator.batchsize.BatchSizeSampler;
 import com.example.smoothing.generator.batchsize.GeometricBatchSize;
-import com.example.smoothing.metrics.ThroughputMetrics;
+import com.example.smoothing.metrics.WindowedMetrics;
 import com.example.smoothing.smoothing.BackpressureGate;
 import lombok.Builder;
 import lombok.NonNull;
@@ -48,7 +48,7 @@ public final class StochasticLoadGenerator {
             BatchSizeSampler batchSampler,
             Duration intraBatchSpread,
             Clock clock,
-            BackpressureGate backpressureGate, ThroughputMetrics throughputMetrics
+            BackpressureGate backpressureGate, WindowedMetrics throughputMetrics
     ) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.task = Objects.requireNonNull(task, "task");
@@ -160,7 +160,7 @@ public final class StochasticLoadGenerator {
         } catch (Throwable t) {
             log.error("task.run() failed", t);
         }
-        ThroughputMetrics.incrementIngressRateCount();
+        WindowedMetrics.incrementIngressRateCount();
     }
 
     private long sampleExpNanos(double lambdaPerSec) {

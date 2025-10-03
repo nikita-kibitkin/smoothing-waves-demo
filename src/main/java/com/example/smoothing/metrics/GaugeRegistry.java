@@ -17,21 +17,23 @@ public class GaugeRegistry {
     @PostConstruct
     void init() {
         //throughput
-        Gauge.builder("throughput", ThroughputMetrics::getCurrentThroughput)
+        Gauge.builder("throughput", WindowedMetrics::getCurrentThroughput)
                 .register(registry);
-        Gauge.builder("ingressRate", ThroughputMetrics::getCurrentIngressRate)
+        Gauge.builder("ingressRate", WindowedMetrics::getCurrentIngressRate)
                 .register(registry);
         //count total
         Gauge.builder("count.emitted", () -> producerService.getStochasticGenerator().getEmittedTasks())
                 .register(registry);
-        Gauge.builder("count.handled", ThroughputMetrics::getThroughputTotalCount)
+        Gauge.builder("count.handled", WindowedMetrics::getThroughputTotalCount)
                 .register(registry);
         //latency
-        Gauge.builder("latency.avg", () -> LatencyMetrics.getHistogramCopy().getMean())
+        Gauge.builder("latency.current", WindowedMetrics::getCurrentLatencyWindowAvg)
                 .register(registry);
-        Gauge.builder("latency.p99", () -> LatencyMetrics.getHistogramCopy().getValueAtPercentile(99))
+        Gauge.builder("latency.avg", () -> HistogramMetrics.getHistogramCopy().getMean())
                 .register(registry);
-        Gauge.builder("latency.p95", () -> LatencyMetrics.getHistogramCopy().getValueAtPercentile(95))
+        Gauge.builder("latency.p99", () -> HistogramMetrics.getHistogramCopy().getValueAtPercentile(99))
+                .register(registry);
+        Gauge.builder("latency.p95", () -> HistogramMetrics.getHistogramCopy().getValueAtPercentile(95))
                 .register(registry);
         //backpressureGate queue depth
         Gauge.builder("backpressureGate.queue.depth", () -> backpressureGate.getQueue().size())
