@@ -63,7 +63,8 @@ public class ProducerService {
                 .batchSampler(GeometricBatchSize.ofMean(5)) // средняя пачка ~5
                 .intraBatchSpread(Duration.ofMillis(200))   // разнести k задач по ~200мс
                 .ctx(ctx)
-                .backpressureGate(backpressureEnabled ? backpressureGate : null)// оставить, как в твоём stop()
+              //  .backpressureGate(backpressureEnabled ? backpressureGate : null)
+               // .warmupRampDuration(Duration.ofMinutes(1))
                 .build();
         this.stochasticGenerator = slg;
 

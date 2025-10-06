@@ -38,5 +38,8 @@ public class GaugeRegistry {
         //backpressureGate queue depth
         Gauge.builder("backpressureGate.queue.depth", () -> backpressureGate.getQueue().size())
                 .register(registry);
+        //backpressureGate credits
+        Gauge.builder("backpressureGate.credits", backpressureGate::getCredits)
+                .register(registry);
     }
 }

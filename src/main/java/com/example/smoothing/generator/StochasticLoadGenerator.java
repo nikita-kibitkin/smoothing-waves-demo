@@ -39,6 +39,9 @@ public final class StochasticLoadGenerator {
 
     private ScheduledFuture<?> stopFuture;
 
+    private final Duration warmupRampDuration;
+    private volatile Boolean warmupRampActive;
+
     @Builder
     private StochasticLoadGenerator(
             @NonNull TaskScheduler scheduler,
@@ -48,13 +51,16 @@ public final class StochasticLoadGenerator {
             BatchSizeSampler batchSampler,
             Duration intraBatchSpread,
             Clock clock,
-            BackpressureGate backpressureGate, WindowedMetrics throughputMetrics
+            BackpressureGate backpressureGate, WindowedMetrics throughputMetrics,
+            Duration warmupRampDuration
     ) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.task = Objects.requireNonNull(task, "task");
         this.rate = Objects.requireNonNull(rate, "rate");
         this.ctx = Objects.requireNonNull(ctx, "ctx");
         this.lambdaMax = rate.upperBoundRatePerSecond();
+        this.warmupRampDuration = warmupRampDuration;
+        if (warmupRampDuration != null) {warmupRampActive = true;} else {warmupRampActive = false;}
         if (lambdaMax <= 0.0 || !Double.isFinite(lambdaMax)) {
             throw new IllegalArgumentException("rate.upperBoundRatePerSecond() must be finite and > 0");
         }
@@ -84,6 +90,12 @@ public final class StochasticLoadGenerator {
         if (duration != null) {
             stopFuture = scheduler.schedule(this::stop, now().plus(duration));
         }
+        if (warmupRampDuration != null) {
+            scheduler.schedule(() -> {
+                this.warmupRampActive = false;
+                log.info("Ramp Finished");
+            }, now().plus(warmupRampDuration));
+        }
     }
 
     public void stop() {
@@ -92,7 +104,7 @@ public final class StochasticLoadGenerator {
         log.info("StochasticLoadGenerator stopping. Emitted tasks={}, batches={}.", emittedTasks.get(), acceptedBatches.get());
         new Thread(() -> {
             try {
-                Thread.sleep(40_000);
+                Thread.sleep(20_000);
             } catch (InterruptedException ignored) {
             }
             try {
@@ -109,7 +121,12 @@ public final class StochasticLoadGenerator {
 
     private void scheduleNextCandidate(Instant baseTime) {
         if (!running.get()) return;
-        long delayNanos = sampleExpNanos(lambdaMax);
+        long delayNanos;
+        if (warmupRampActive) {
+            delayNanos = sampleExpNanos(lambdaMax / 2);
+        } else {
+            delayNanos = sampleExpNanos(lambdaMax);
+        }
         Instant candidateAt = baseTime.plusNanos(delayNanos);
         scheduler.schedule(() -> tryAcceptAt(candidateAt), candidateAt);
     }

@@ -41,19 +41,20 @@ public class WindowedMetrics {
 
     @Scheduled(fixedRate = fixedRate * 1000)
     public void recordAndReset() {
+//        log.info("latencyWindowSum={}.throughputWindowCount={}", latencyWindowSum, throughputWindowCount);
+        double latencyWindowAvg = latencyWindowSum.sum() / throughputWindowCount.doubleValue();
+        currentLatencyWindowAvg = latencyWindowAvg;
+        latencyWindowSum.reset();
+        //log.info("LatencyWindowAvg recorded for last {} s.LatencyWindowAvg={}.", fixedRate, latencyWindowAvg);
+
         double throughput = (double) throughputWindowCount.sum() / fixedRate;
         currentThroughput = throughput;
         throughputWindowCount.reset();
-        log.info("Throughput recorded for last {} s. Throughput={}.", fixedRate, throughput);
+        //log.info("Throughput recorded for last {} s. Throughput={}.", fixedRate, throughput);
 
         double ingressRate = (double) ingressWindowCount.sum() / fixedRate;
         currentIngressRate = ingressRate;
         ingressWindowCount.reset();
-        log.info("IngressRate recorded for last {} s. IngressRate={}.", fixedRate, ingressRate);
-
-        double latencyWindowAvg = latencyWindowSum.sum() / fixedRate;
-        currentLatencyWindowAvg = latencyWindowAvg;
-        latencyWindowSum.reset();
-        log.info("LatencyWindowAvg recorded for last {} s.LatencyWindowAvg={}.", fixedRate, latencyWindowAvg);
+        //log.info("IngressRate recorded for last {} s. IngressRate={}.", fixedRate, ingressRate);
     }
 }

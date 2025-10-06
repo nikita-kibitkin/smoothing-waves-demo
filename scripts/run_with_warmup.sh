@@ -15,6 +15,10 @@ pg_truncate_vacuum(){
   PGPASSWORD='postgres' psql -h localhost -p 5433 -U postgres -d postgres -c "VACUUM (ANALYZE);"
 }
 
+checkpoint(){
+  PGPASSWORD='postgres' psql -h localhost -p 5433 -U postgres -d postgres -c "CHECKPOINT"
+}
+
 run_phase() {
   local label="$1" minutes="$2" backpressure="$3" credits="$4" db="$5" rate="$6"
   export DURATION_MINUTES="$minutes"
@@ -32,32 +36,77 @@ run_phase() {
 
   echo "[$label] finished."
   docker compose rm -f app >/dev/null
+}
 
+run_phase_with_clean_after(){
+  run_phase "$@"
   kafka_recreate_topic
   pg_truncate_vacuum
 }
 
+docker compose down
 docker compose up -d  zookeeper kafka prometheus grafana pg pg_standby #loki promtail
 
-#run_phase pg_bp_no 1 false 0 true 30
+run_phase pg_bp_no 2 false 0 true 60
 
-#run_phase pg_bp_no 5 false 0 true 30
-#run_phase pg_bp_500 2 true 500 true 30
-#run_phase pg_bp_1000 5 true 1000 true 30
-#run_phase pg_bp_1500 2 true 1500 true 30
+#run_phase_with_clean_after pg_bp_2 3 true 5 true 70
+#run_phase_with_clean_after pg_bp_no 3 false 0 true 70
+
+
+
+run_phase_with_clean_after pg_bp_2 5 true 5 true 100
+run_phase_with_clean_after pg_bp_no 5 false 0 true 100
+
+run_phase_with_clean_after pg_bp_2 3 true 10 true 130
+run_phase_with_clean_after pg_bp_no 3 false 0 true 130
+
+run_phase_with_clean_after pg_bp_2 5 true 10 true 140
+run_phase_with_clean_after pg_bp_no 5 false 0 true 140
+
+run_phase_with_clean_after pg_bp_2 5 true 5 true 90
+run_phase_with_clean_after pg_bp_no 5 false 0 true 90
+
+
+
+run_phase_with_clean_after pg_bp_2 3 true 1 true 125
+run_phase_with_clean_after pg_bp_no 3 false 0 true 125
+
+run_phase_with_clean_after pg_bp_2 3 true 1 true 125
+run_phase_with_clean_after pg_bp_no 3 false 0 true 125
+
+run_phase_with_clean_after pg_bp_2 3 true 1 true 120
+run_phase_with_clean_after pg_bp_no 3 false 0 true 120
+
+
+
+
+
+checkpoint
+run_phase pg_bp_no 1 false 0 true 30
+
+
+checkpoint
+run_phase pg_bp_no 1 false 0 true 30
+
+
+
+#checkpoint
+##run_phase pg_bp_no 1 false 0 true 30
+#run_phase_with_clean_after pg_bp_500 5 true 500 true 50
 #
-#run_phase pg_bp_no 5 false 0 true 40
-#run_phase pg_bp_500 2 true 500 true 40
-#run_phase pg_bp_1000 5 true 1000 true 40
-#run_phase pg_bp_1500 2 true 1500 true 40
+#checkpoint
+##run_phase pg_bp_no 1 false 0 true 30
+#run_phase_with_clean_after pg_bp_1500 5 true 1500 true 50
+#
+#checkpoint
+##run_phase pg_bp_no 1 false 0 true 30
+#run_phase_with_clean_after pg_bp_1000 5 true 1000 true 50
+#
+#checkpoint
+##run_phase pg_bp_no 1 false 0 true 30
+#run_phase_with_clean_after pg_bp_no 5 false 0 true 50
 
-run_phase pg_bp_1000 10 true 1000 true 50
-run_phase pg_bp_no 10 false 0 true 50
-run_phase pg_bp_500 10 true 500 true 50
-run_phase pg_bp_1500 3 true 1500 true 50
-run_phase pg_bp_1000 3 true 1000 true 50
-
-
+#docker compose down
 #run_phase pg_bp_no 3 false 0 true 55
 ##run_phase pg_bp_500 3 true 500 true 55
 ##run_phase pg_bp_1000 3 true 1000 true 55
